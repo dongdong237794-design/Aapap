@@ -1,0 +1,405 @@
+import React, { useState, useEffect, useRef } from 'react';
+import { BookOpen, Keyboard, CheckCircle2, XCircle, ArrowRight, RefreshCw, Lightbulb, ChevronLeft, ChevronRight, Home } from 'lucide-react';
+
+// รายการคำศัพท์ที่สกัดมาจากรูปภาพแบบทดสอบ (ทั้งในเนื้อเรื่องและตัวเลือก)
+const VOCAB_LIST = [
+  { word: "due to", meaning: "เนื่องจาก, เพราะ" },
+  { word: "despite", meaning: "ถึงแม้ว่า, ทั้งๆที่" },
+  { word: "regarding", meaning: "เกี่ยวกับ, ในเรื่อง" },
+  { word: "thus", meaning: "ดังนั้น" },
+  { word: "disrupt", meaning: "ทำให้หยุดชะงัก, ขัดขวาง" },
+  { word: "accumulate", meaning: "สะสม, เพิ่มพูน" },
+  { word: "access", meaning: "การเข้าถึง, สิทธิ์ในการเข้าถึง" },
+  { word: "determine", meaning: "กำหนด, ตัดสินใจ" },
+  { word: "simultaneous", meaning: "ที่เกิดขึ้นพร้อมกัน" },
+  { word: "comfort", meaning: "ความสะดวกสบาย, ปลอบประโลม" },
+  { word: "persistent", meaning: "ที่ต่อเนื่องยาวนาน, เรื้อรัง" },
+  { word: "pivotal", meaning: "สำคัญมาก, เป็นแกนหลัก" },
+  { word: "unavoidable", meaning: "ที่หลีกเลี่ยงไม่ได้" },
+  { word: "inevitable", meaning: "ที่หลีกเลี่ยงไม่ได้, ซึ่งต้องเกิดขึ้น" },
+  { word: "incident", meaning: "เหตุการณ์" },
+  { word: "period", meaning: "ระยะเวลา, ช่วงเวลา" },
+  { word: "stability", meaning: "ความมั่นคง, เสถียรภาพ" },
+  { word: "target", meaning: "เป้าหมาย" },
+  { word: "phenomena", meaning: "ปรากฏการณ์ (พหูพจน์)" },
+  { word: "moisture", meaning: "ความชื้น" },
+  { word: "disaster", meaning: "ภัยพิบัติ" },
+  { word: "emergency", meaning: "เหตุฉุกเฉิน" },
+];
+
+// ฟังก์ชันสุ่มเรียงลำดับ Array (Fisher-Yates shuffle)
+const shuffleArray = (array) => {
+  const newArray = [...array];
+  for (let i = newArray.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [newArray[i], newArray[j]] = [newArray[j], newArray[i]];
+  }
+  return newArray;
+};
+
+export default function App() {
+  const [currentMode, setCurrentMode] = useState('menu'); // 'menu', 'learn', 'spell'
+
+  return (
+    <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4 font-sans text-slate-800">
+      <div className="w-full max-w-md bg-white rounded-2xl shadow-xl overflow-hidden flex flex-col min-h-[500px]">
+        {/* Header */}
+        <div className="bg-indigo-600 p-4 text-white flex justify-between items-center shadow-md z-10">
+          <h1 className="text-xl font-bold flex items-center gap-2">
+            {currentMode === 'menu' ? '📚 Vocab Master' : 
+             currentMode === 'learn' ? '📖 เรียนรู้คำศัพท์' : '⌨️ เกมสะกดคำ'}
+          </h1>
+          {currentMode !== 'menu' && (
+            <button 
+              onClick={() => setCurrentMode('menu')}
+              className="p-2 hover:bg-indigo-500 rounded-full transition-colors flex items-center gap-1 text-sm font-medium"
+            >
+              <Home size={18} />
+              <span className="hidden sm:inline">หน้าแรก</span>
+            </button>
+          )}
+        </div>
+
+        {/* Content Area */}
+        <div className="flex-1 overflow-y-auto p-4 flex flex-col relative">
+          {currentMode === 'menu' && <MainMenu onSelectMode={setCurrentMode} />}
+          {currentMode === 'learn' && <LearnMode vocabList={VOCAB_LIST} />}
+          {currentMode === 'spell' && <SpellMode vocabList={VOCAB_LIST} />}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// คอมโพเนนต์หน้าเมนูหลัก
+function MainMenu({ onSelectMode }) {
+  return (
+    <div className="flex flex-col items-center justify-center flex-1 h-full space-y-6 py-8">
+      <div className="text-center mb-4">
+        <h2 className="text-2xl font-bold text-slate-800 mb-2">ยินดีต้อนรับ!</h2>
+        <p className="text-slate-500">เลือกโหมดที่คุณต้องการใช้งานจากคำศัพท์ในแบบทดสอบ</p>
+      </div>
+
+      <button 
+        onClick={() => onSelectMode('learn')}
+        className="w-full max-w-xs group relative flex items-center p-4 bg-white border-2 border-indigo-100 hover:border-indigo-500 rounded-xl shadow-sm hover:shadow-md transition-all text-left"
+      >
+        <div className="bg-indigo-100 text-indigo-600 p-3 rounded-lg mr-4 group-hover:bg-indigo-600 group-hover:text-white transition-colors">
+          <BookOpen size={24} />
+        </div>
+        <div>
+          <h3 className="font-bold text-lg text-slate-800">เรียนรู้ความหมาย</h3>
+          <p className="text-sm text-slate-500">อ่านและทบทวนความหมาย</p>
+        </div>
+      </button>
+
+      <button 
+        onClick={() => onSelectMode('spell')}
+        className="w-full max-w-xs group relative flex items-center p-4 bg-white border-2 border-emerald-100 hover:border-emerald-500 rounded-xl shadow-sm hover:shadow-md transition-all text-left"
+      >
+        <div className="bg-emerald-100 text-emerald-600 p-3 rounded-lg mr-4 group-hover:bg-emerald-600 group-hover:text-white transition-colors">
+          <Keyboard size={24} />
+        </div>
+        <div>
+          <h3 className="font-bold text-lg text-slate-800">เกมสะกดคำ</h3>
+          <p className="text-sm text-slate-500">ดูความหมายแล้วพิมพ์คำศัพท์</p>
+        </div>
+      </button>
+      
+      <div className="mt-8 text-xs text-slate-400 text-center max-w-xs">
+        คำศัพท์ทั้งหมด {VOCAB_LIST.length} คำ ถูกดึงมาจากข้อสอบ Text Completion ที่ระบุ
+      </div>
+    </div>
+  );
+}
+
+// คอมโพเนนต์โหมดเรียนรู้ (Flashcards)
+function LearnMode({ vocabList }) {
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [isFlipped, setIsFlipped] = useState(false);
+
+  const nextCard = () => {
+    setIsFlipped(false);
+    setCurrentIndex((prev) => (prev + 1) % vocabList.length);
+  };
+
+  const prevCard = () => {
+    setIsFlipped(false);
+    setCurrentIndex((prev) => (prev - 1 + vocabList.length) % vocabList.length);
+  };
+
+  const currentVocab = vocabList[currentIndex];
+
+  return (
+    <div className="flex flex-col items-center justify-center flex-1 h-full py-4">
+      <div className="text-sm font-medium text-slate-400 mb-4">
+        คำที่ {currentIndex + 1} / {vocabList.length}
+      </div>
+
+      {/* Flashcard */}
+      <div 
+        className="w-full h-64 perspective-1000 cursor-pointer group"
+        onClick={() => setIsFlipped(!isFlipped)}
+      >
+        <div className={`relative w-full h-full transition-transform duration-500 transform-style-preserve-3d ${isFlipped ? 'rotate-y-180' : ''}`}>
+          
+          {/* Front (Word) */}
+          <div className="absolute w-full h-full backface-hidden bg-white border-2 border-indigo-100 rounded-2xl shadow-sm flex flex-col items-center justify-center p-6 text-center">
+            <span className="text-xs uppercase tracking-widest text-indigo-400 font-bold mb-4">คลิกเพื่อดูความหมาย</span>
+            <h2 className="text-4xl font-bold text-indigo-700">{currentVocab.word}</h2>
+          </div>
+
+          {/* Back (Meaning) */}
+          <div className="absolute w-full h-full backface-hidden bg-indigo-50 border-2 border-indigo-200 rounded-2xl shadow-sm flex flex-col items-center justify-center p-6 text-center rotate-y-180">
+             <span className="text-xs uppercase tracking-widest text-indigo-400 font-bold mb-4">ความหมาย</span>
+            <h2 className="text-3xl font-semibold text-slate-800">{currentVocab.meaning}</h2>
+          </div>
+
+        </div>
+      </div>
+
+      {/* Controls */}
+      <div className="flex items-center justify-center gap-6 mt-8 w-full">
+        <button 
+          onClick={prevCard}
+          className="p-3 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 transition-colors"
+        >
+          <ChevronLeft size={24} />
+        </button>
+        <span className="text-slate-400 font-medium w-16 text-center text-sm">เลื่อนดู</span>
+        <button 
+          onClick={nextCard}
+          className="p-3 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 transition-colors"
+        >
+          <ChevronRight size={24} />
+        </button>
+      </div>
+      
+      <style dangerouslySetInnerHTML={{__html: `
+        .perspective-1000 { perspective: 1000px; }
+        .transform-style-preserve-3d { transform-style: preserve-3d; }
+        .backface-hidden { backface-visibility: hidden; }
+        .rotate-y-180 { transform: rotateY(180deg); }
+      `}} />
+    </div>
+  );
+}
+
+// คอมโพเนนต์โหมดสะกดคำ (Spelling Game)
+function SpellMode({ vocabList }) {
+  const [gameWords, setGameWords] = useState([]);
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [userInput, setUserInput] = useState('');
+  const [status, setStatus] = useState('idle'); // 'idle', 'correct', 'incorrect'
+  const [score, setScore] = useState(0);
+  const [showHint, setShowHint] = useState(false);
+  const [gameOver, setGameOver] = useState(false);
+  
+  const inputRef = useRef(null);
+
+  // เริ่มเกมใหม่
+  const startGame = () => {
+    setGameWords(shuffleArray(vocabList).slice(0, 10)); // เล่นทีละ 10 คำ
+    setCurrentIndex(0);
+    setUserInput('');
+    setStatus('idle');
+    setScore(0);
+    setShowHint(false);
+    setGameOver(false);
+  };
+
+  // เรียกใช้ startGame ตอนโหลดคอมโพเนนต์
+  useEffect(() => {
+    startGame();
+  }, []);
+
+  // โฟกัสช่องกรอกข้อความเมื่อเปลี่ยนคำ
+  useEffect(() => {
+    if (status === 'idle' && !gameOver && inputRef.current) {
+      inputRef.current.focus();
+    }
+  }, [currentIndex, status, gameOver]);
+
+  if (gameWords.length === 0) return null;
+
+  const currentVocab = gameWords[currentIndex];
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    if (!userInput.trim() || status !== 'idle') return;
+
+    const correctWord = currentVocab.word.toLowerCase();
+    const userWord = userInput.trim().toLowerCase();
+
+    if (correctWord === userWord) {
+      setStatus('correct');
+      setScore(s => s + 1);
+    } else {
+      setStatus('incorrect');
+    }
+  };
+
+  const handleNext = () => {
+    if (currentIndex < gameWords.length - 1) {
+      setCurrentIndex(curr => curr + 1);
+      setUserInput('');
+      setStatus('idle');
+      setShowHint(false);
+    } else {
+      setGameOver(true);
+    }
+  };
+
+  // สร้างรูปแบบคำใบ้ เช่น a _ _ _ _ m u _ _ _ _
+  const getHint = (word) => {
+    if (!showHint) return "คลิกเพื่อดูคำใบ้";
+    const words = word.split(' ');
+    
+    return words.map(w => {
+       if (w.length <= 2) return w[0] + ' '.repeat(w.length-1).replace(/ /g, '_ ');
+       let hintStr = w[0] + ' ';
+       for(let i=1; i<w.length-1; i++){
+          // สุ่มเปิดตัวอักษร 30%
+          hintStr += (Math.random() > 0.7 ? w[i] : '_') + ' ';
+       }
+       hintStr += w[w.length-1];
+       return hintStr;
+    }).join('   ');
+  };
+
+  if (gameOver) {
+    return (
+      <div className="flex flex-col items-center justify-center flex-1 h-full text-center space-y-6 py-8">
+        <div className="w-24 h-24 bg-emerald-100 text-emerald-500 rounded-full flex items-center justify-center mb-2">
+          <CheckCircle2 size={48} />
+        </div>
+        <div>
+          <h2 className="text-3xl font-bold text-slate-800 mb-2">จบเกม!</h2>
+          <p className="text-lg text-slate-600">คุณได้คะแนน</p>
+          <p className="text-5xl font-black text-emerald-600 my-4">{score} <span className="text-2xl text-slate-400">/ 10</span></p>
+        </div>
+        
+        <button 
+          onClick={startGame}
+          className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-8 py-3 rounded-xl font-bold transition-colors w-full max-w-xs justify-center"
+        >
+          <RefreshCw size={20} />
+          เล่นอีกครั้ง
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-col flex-1 h-full">
+      {/* Progress Bar & Score */}
+      <div className="flex justify-between items-center mb-6">
+        <div className="text-sm font-semibold text-slate-500">
+          คำที่ {currentIndex + 1} / 10
+        </div>
+        <div className="bg-emerald-100 text-emerald-700 px-3 py-1 rounded-full text-sm font-bold flex items-center gap-1">
+          ★ {score}
+        </div>
+      </div>
+      
+      <div className="w-full bg-slate-200 h-2 rounded-full mb-8 overflow-hidden">
+        <div 
+          className="bg-indigo-500 h-full transition-all duration-300"
+          style={{ width: `${((currentIndex) / 10) * 100}%` }}
+        />
+      </div>
+
+      {/* Question Area */}
+      <div className="text-center mb-8 flex-1">
+        <span className="text-xs font-bold text-indigo-400 uppercase tracking-widest">จงพิมพ์คำศัพท์ที่มีความหมายว่า</span>
+        <h2 className="text-2xl sm:text-3xl font-bold text-slate-800 mt-2 min-h-[4rem] flex items-center justify-center">
+          "{currentVocab.meaning}"
+        </h2>
+        
+        {/* Hint button/text */}
+        <div className="mt-4 min-h-[2rem]">
+           {status === 'idle' && (
+              <button 
+                onClick={() => setShowHint(true)} 
+                className={`text-sm flex items-center justify-center gap-1 mx-auto transition-colors ${showHint ? 'text-amber-600 font-mono tracking-widest text-lg' : 'text-slate-400 hover:text-amber-500'}`}
+              >
+                {!showHint && <Lightbulb size={16} />}
+                {showHint ? getHint(currentVocab.word) : "ดูคำใบ้ (Hint)"}
+              </button>
+           )}
+        </div>
+      </div>
+
+      {/* Input Area */}
+      <form onSubmit={handleSubmit} className="w-full space-y-4 pb-4">
+        <div className="relative">
+          <input
+            ref={inputRef}
+            type="text"
+            value={userInput}
+            onChange={(e) => setUserInput(e.target.value)}
+            disabled={status !== 'idle'}
+            autoComplete="off"
+            autoCorrect="off"
+            autoCapitalize="none"
+            spellCheck="false"
+            placeholder="พิมพ์คำศัพท์ภาษาอังกฤษ..."
+            className={`w-full p-4 text-center text-xl font-medium border-2 rounded-xl outline-none transition-all
+              ${status === 'idle' ? 'bg-white border-slate-200 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100 text-slate-800' : ''}
+              ${status === 'correct' ? 'bg-emerald-50 border-emerald-500 text-emerald-700' : ''}
+              ${status === 'incorrect' ? 'bg-rose-50 border-rose-500 text-rose-700' : ''}
+            `}
+          />
+          
+          {/* Status Icons in Input */}
+          {status === 'correct' && (
+            <div className="absolute right-4 top-1/2 -translate-y-1/2 text-emerald-500">
+              <CheckCircle2 size={24} />
+            </div>
+          )}
+          {status === 'incorrect' && (
+            <div className="absolute right-4 top-1/2 -translate-y-1/2 text-rose-500">
+              <XCircle size={24} />
+            </div>
+          )}
+        </div>
+
+        {/* Feedback Message & Next Button */}
+        <div className="min-h-[4rem]">
+          {status === 'idle' ? (
+            <button
+              type="submit"
+              disabled={!userInput.trim()}
+              className="w-full bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-300 disabled:cursor-not-allowed text-white p-4 rounded-xl font-bold text-lg transition-colors"
+            >
+              ตรวจคำตอบ
+            </button>
+          ) : (
+            <div className="flex flex-col space-y-4">
+               {status === 'incorrect' && (
+                  <div className="text-center text-rose-600 font-medium">
+                    คำที่ถูกต้องคือ: <span className="font-bold font-mono text-lg ml-1">{currentVocab.word}</span>
+                  </div>
+               )}
+               {status === 'correct' && (
+                  <div className="text-center text-emerald-600 font-medium">
+                    ถูกต้องแล้ว ยอดเยี่ยม! 🎉
+                  </div>
+               )}
+              <button
+                type="button"
+                onClick={handleNext}
+                autoFocus
+                className={`w-full p-4 rounded-xl font-bold text-lg transition-colors flex items-center justify-center gap-2 text-white
+                  ${status === 'correct' ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-slate-800 hover:bg-slate-900'}
+                `}
+              >
+                คำต่อไป <ArrowRight size={20} />
+              </button>
+            </div>
+          )}
+        </div>
+      </form>
+    </div>
+  );
+}
